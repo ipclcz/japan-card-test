@@ -82,4 +82,84 @@
 </div>
 
 <script>
-// 对应你上传的 5 张
+// 对应你上传的 5 张 PNG 文件
+const CARDS = [
+  { id:'samurai', img:'samurai.png', name:'SAMURAI', jp:'侍', color:'#1D9E75', stats:'Sword Saint: Miyamoto Musashi<br>Style: Niten Ichi-ryu<br>Unbeaten in 61 duels.' },
+  { id:'ninja', img:'ninja.png', name:'NINJA', jp:'忍者', color:'#534AB7', stats:'Master: Hattori Hanzo<br>Clan: Iga Ninja<br>Specialty: Shadow Arts' },
+  { id:'shogun', img:'shogun.png', name:'SHOGUN', jp:'将軍', color:'#BA7517', stats:'Unifier: Tokugawa Ieyasu<br>Edo Period Founder<br>Established 265yr peace' },
+  { id:'geisha', img:'geisha.png', name:'GEISHA', jp:'芸者', color:'#D4537E', stats:'Artist: Katsuyama<br>Legacy: Cultural Icon<br>Master of Dance & Poetry' },
+  { id:'ronin', img:'ronin.png', name:'RONIN', jp:'浪人', color:'#888780', stats:'The Wandering Blade<br>Code: Personal Bushido<br>Masterless and Free' }
+];
+
+let currentIdx = 0;
+let isFlipped = false;
+let mindarThree = null;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById('screen-' + id).classList.remove('hidden');
+}
+
+function flipCard() {
+  isFlipped = !isFlipped;
+  document.getElementById('card3d').classList.toggle('flipped', isFlipped);
+}
+
+function selectCard(idx) {
+  if(isFlipped) flipCard();
+  currentIdx = idx;
+  const c = CARDS[idx];
+  document.getElementById('card-art-html').innerHTML = `<img src="${c.img}" class="card-img">`;
+  document.getElementById('card-name').textContent = c.name;
+  document.getElementById('card-jp').textContent = c.jp;
+  document.getElementById('card-border').style.borderColor = c.color;
+  document.getElementById('card-stats').innerHTML = c.stats;
+  
+  document.querySelectorAll('.thumb').forEach((t, i) => {
+    t.classList.toggle('active', i === idx);
+  });
+}
+
+// 初始化缩略图列表
+const list = document.getElementById('thumb-list');
+CARDS.forEach((c, i) => {
+  const t = document.createElement('div');
+  t.className = 'thumb';
+  t.innerHTML = `<img src="${c.img}" style="width:100%; height:100%; object-fit:cover;">`;
+  t.onclick = () => selectCard(i);
+  list.appendChild(t);
+});
+
+selectCard(0);
+
+// AR 扫描逻辑
+async function startAR() {
+  showScreen('ar');
+  try {
+    mindarThree = new window.MINDAR.IMAGE.MindARThree({
+      container: document.getElementById('ar-container'),
+      imageTargetSrc: './targets.mind',
+    });
+    const {renderer, scene, camera} = mindarThree;
+
+    // 绑定识别事件
+    CARDS.forEach((c, i) => {
+      const anchor = mindarThree.addAnchor(i);
+      anchor.onTargetFound = () => { selectCard(i); showScreen('demo'); };
+    });
+
+    await mindarThree.start();
+    renderer.setAnimationLoop(() => { renderer.render(scene, camera); });
+  } catch (e) {
+    alert("AR Initialization failed. Please check camera permissions or targets.mind file.");
+    stopAR();
+  }
+}
+
+function stopAR() {
+  if(mindarThree) mindarThree.stop();
+  showScreen('landing');
+}
+</script>
+</body>
+</html>
